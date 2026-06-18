@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ JWS Auth & CRUD Notes Hub</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-success: #10b981;
+            --accent-danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            margin: 0 0 8px 0;
+            font-size: 1.8rem;
+            background: linear-gradient(to right, #a5b4fc, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .hidden { display: none !important; }
+        h3 { margin: 0 0 20px 0; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
+        .form-group { margin-bottom: 15px; }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-danger { background: var(--accent-danger); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-edit { background: #f59e0b; width: auto; padding: 6px 12px; font-size: 0.8rem; }
+        .btn-edit:hover { background: #d97706; }
+        .btn-del { background: var(--accent-danger); width: auto; padding: 6px 12px; font-size: 0.8rem; }
+        .btn-del:hover { background: #b91c1c; }
+
+        .switch-mode { text-align: center; margin-top: 20px; font-size: 0.9rem; color: var(--text-muted); }
+        .switch-mode span { color: var(--accent-primary); cursor: pointer; text-decoration: underline; }
+
+        .profile-badge {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar {
+            width: 45px;
+            height: 45px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* CRUD Note Block Styles */
+        .notes-list { margin-top: 20px; max-height: 300px; overflow-y: auto; }
+        .note-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .note-item h4 { margin: 0 0 5px 0; font-size: 1.1rem; color: #a5b4fc; }
+        .note-item p { margin: 0 0 10px 0; font-size: 0.9rem; color: #cbd5e1; white-space: pre-wrap; }
+        .note-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: -300px;
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            transition: right 0.4s ease;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast">Notification</div>
+
+    <div class="container">
+        <header>
+            <h1>JWS Secure Storage</h1>
+            <p>Authenticated CRUD Experience</p>
+        </header>
+
+        <div id="loginCard" class="card">
+            <h3>🔑 Account Sign In</h3>
+            <div class="form-group"><input type="email" id="loginEmail" placeholder="Email Address"></div>
+            <div class="form-group"><input type="password" id="loginPassword" placeholder="Password"></div>
+            <button onclick="loginUser()">Sign In Now →</button>
+            <div class="switch-mode">Don't have an account? <span onclick="toggleCards(false)">Register here</span></div>
+        </div>
+
+        <div id="registerCard" class="card hidden">
+            <h3>📝 Create Account</h3>
+            <div class="form-group"><input type="text" id="regName" placeholder="Full Name"></div>
+            <div class="form-group"><input type="email" id="regEmail" placeholder="Email Address"></div>
+            <div class="form-group"><input type="password" id="regPassword" placeholder="Password"></div>
+            <button onclick="registerUser()">Complete Registration ✓</button>
+            <div class="switch-mode">Already registered? <span onclick="toggleCards(true)">Sign in instead</span></div>
+        </div>
+
+        <div id="dashboardCard" class="card hidden">
+            <div class="profile-badge">
+                <div class="avatar" id="userInitial">U</div>
+                <div>
+                    <h4 id="welcomeName" style="margin:0;">Loading...</h4>
+                    <small id="welcomeEmail" style="color:var(--text-muted);"></small>
+                </div>
+                <button class="btn-danger" style="width:auto; margin-left:auto; padding:8px 12px; font-size:0.85rem;" onclick="logoutUser()">Logout</button>
+            </div>
+
+            <div style="border-bottom: 1px solid var(--glass-border); padding-bottom: 20px;">
+                <h4 style="margin: 0 0 12px 0;" id="formTitle">✏️ Create a Secure Note</h4>
+                <input type="hidden" id="noteId">
+                <div class="form-group"><input type="text" id="noteTitle" placeholder="Note Title..."></div>
+                <div class="form-group"><textarea id="noteContent" rows="3" placeholder="Write something confidential..."></textarea></div>
+                <button id="saveNoteBtn" onclick="saveNote()">Save Note</button>
+                <button id="cancelEditBtn" class="btn-secondary hidden" style="margin-top:8px;" onclick="resetNoteForm()">Cancel Edit</button>
+            </div>
+
+            <h4 style="margin: 20px 0 10px 0;">📂 Your Private Notes Collection</h4>
+            <div class="notes-list" id="notesContainer">Loading notes...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:5000/api";
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.style.background = isError ? "var(--accent-danger)" : "var(--accent-success)";
+            toast.style.right = "20px";
+            setTimeout(() => { toast.style.right = "-300px"; }, 3000);
+        }
+
+        function toggleCards(showLogin) {
+            document.getElementById("loginCard").classList.toggle("hidden", !showLogin);
+            document.getElementById("registerCard").classList.toggle("hidden", showLogin);
+        }
+
+        window.onload = () => {
+            if (localStorage.getItem('userToken')) {
+                showDashboardView();
+                syncDashboard();
+            }
+        };
+
+        function showDashboardView() {
+            document.getElementById("loginCard").classList.add("hidden");
+            document.getElementById("registerCard").classList.add("hidden");
+            document.getElementById("dashboardCard").classList.remove("hidden");
+        }
+
+        async function registerUser() {
+            const name = document.getElementById("regName").value;
+            const email = document.getElementById("regEmail").value;
+            const password = document.getElementById("regPassword").value;
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast("Registered successfully!");
+                    toggleCards(true);
+                    document.getElementById("loginEmail").value = email;
+                } else { showToast(data.message, true); }
+            } catch { showToast("Server error", true); }
+        }
+
+        async function loginUser() {
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+                if (data.token) {
+                    localStorage.setItem('userToken', data.token);
+                    showToast("Welcome back! 👋");
+                    showDashboardView();
+                    syncDashboard();
+                } else { showToast(data.message, true); }
+            } catch { showToast("Server error", true); }
+        }
+
+        function syncDashboard() {
+            getProfile();
+            fetchNotes();
+        }
+
+        async function getProfile() {
+            const token = localStorage.getItem('userToken');
+            try {
+                const response = await fetch(`${API_URL}/users/profile`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById("welcomeName").innerText = data.name;
+                    document.getElementById("welcomeEmail").innerText = data.email;
+                    document.getElementById("userInitial").innerText = data.name.charAt(0).toUpperCase();
+                } else { logoutUser(); }
+            } catch { showToast("Error loading profile", true); }
+        }
+
+        /* ======================== CRUD FRONTEND INFRASTRUCTURE ======================== */
+        let localNotesCache = [];
+
+        async function fetchNotes() {
+            const token = localStorage.getItem('userToken');
+            const container = document.getElementById("notesContainer");
+            try {
+                const response = await fetch(`${API_URL}/notes`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const notes = await response.json();
+                localNotesCache = notes; // Save to memory cache for editing mapping
+
+                if(notes.length === 0) {
+                    container.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No active secure items discovered.</p>`;
+                    return;
+                }
+
+                container.innerHTML = notes.map(note => `
+                    <div class="note-item">
+                        <h4>${note.title}</h4>
+                        <p>${note.content}</p>
+                        <div class="note-actions">
+                            <button class="btn-edit" onclick="initiateEdit('${note._id}')">Edit</button>
+                            <button class="btn-del" onclick="deleteNote('${note._id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch { container.innerHTML = "Failed to load encryption database."; }
+        }
+
+        async function saveNote() {
+            const token = localStorage.getItem('userToken');
+            const id = document.getElementById("noteId").value;
+            const title = document.getElementById("noteTitle").value;
+            const content = document.getElementById("noteContent").value;
+
+            if(!title || !content) return showToast("Fields cannot be empty!", true);
+
+            const method = id ? 'PUT' : 'POST';
+            const endpoint = id ? `${API_URL}/notes/${id}` : `${API_URL}/notes`;
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: method,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title, content })
+                });
+
+                if (response.ok) {
+                    showToast(id ? "Note updated successfully!" : "Note encrypted & stored!");
+                    resetNoteForm();
+                    fetchNotes();
+                } else { showToast("Write rejected", true); }
+            } catch { showToast("Transaction error", true); }
+        }
+
+        function initiateEdit(id) {
+            const note = localNotesCache.find(n => n._id === id);
+            if(!note) return;
+            
+            document.getElementById("noteId").value = note._id;
+            document.getElementById("noteTitle").value = note.title;
+            document.getElementById("noteContent").value = note.content;
+            
+            document.getElementById("formTitle").innerText = "🧡 Edit Your Note";
+            document.getElementById("saveNoteBtn").innerText = "Apply Changes";
+            document.getElementById("cancelEditBtn").classList.remove("hidden");
+        }
+
+        function resetNoteForm() {
+            document.getElementById("noteId").value = "";
+            document.getElementById("noteTitle").value = "";
+            document.getElementById("noteContent").value = "";
+            document.getElementById("formTitle").innerText = "✏️ Create a Secure Note";
+            document.getElementById("saveNoteBtn").innerText = "Save Note";
+            document.getElementById("cancelEditBtn").classList.add("hidden");
+        }
+
+        async function deleteNote(id) {
+            if(!confirm("Are you certain you want to purge this secure item?")) return;
+            const token = localStorage.getItem('userToken');
+            try {
+                const response = await fetch(`${API_URL}/notes/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if(response.ok) {
+                    showToast("Record successfully deleted.");
+                    fetchNotes();
+                } else { showToast("Purge rejected", true); }
+            } catch { showToast("Connectivity error", true); }
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('userToken');
+            document.getElementById("dashboardCard").classList.add("hidden");
+            document.getElementById("loginCard").classList.remove("hidden");
+            resetNoteForm();
+            showToast("Logged out safely.");
+        }
+    </script>
+</body>
+</html>
