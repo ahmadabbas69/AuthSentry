@@ -40,6 +40,11 @@ Tech StackOperational LayerCore TechnologyStrategic PurposeExecution SandboxNode
 ├── 📄 app.js           # Server Configuration: Pipeline orchestration and global interceptors
 ├── 📄 server.js        # Engine Ignition: Main listener thread that binds to your designated port
 └── 📄 package.json     # Manifest: Complete module tracking and structural dependency lists
+
+
+
+
+
 Environment ConfigurationSeed your local runtime environment by creating a .env file in the system's root folder:Code snippetPORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
